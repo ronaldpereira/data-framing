@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[])
 {
-  /* code */
+    /* code */
 
-  return 0;
+    return 0;
 }
