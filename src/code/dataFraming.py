@@ -1,5 +1,6 @@
-from struct import *
+import struct
 import socket
+import sys
 
 class FrameReader:
 
@@ -22,8 +23,8 @@ class FrameReader:
 		return (i == 16 if True else False, dataPosition)
 
 	def getLength(data):
-		return int(len(data)/8)
-		
+		return struct.pack('>H',(len(data)))
+
 
 class Checksum:
 
@@ -31,38 +32,37 @@ class Checksum:
 		s = 0
 
 		for i in range(0, len(msg), 2):
-			w = (msg[i]) + ((msg[i+1]) << 8)
+			w = (msg[i] + (msg[i+1]) << 16)
 			s = Checksum.carryAroundAdd(s, w)
 
-		return (~s & 0xffff)
+		return struct.pack('>H', ~s & 0xffff)
 
 	def carryAroundAdd(a, b):
 		c = a + b
 
-		return (c &0xffff) + (c >> 16)
-		
-		
-SYNC = b'11011100110000000010001111000010' # SYNC constant
-rservd = b'0000' # Reserved field - Not used in this project
-checksum = b'0000000000000000' # Checksum initialization
+		return (c & 0xffff) + (c >> 16)
 
-input = open('../test/input.txt', 'rb')
-output = open('../test/output.txt', 'wb')
 
-data = input.read()
+SYNC = b'\xdc\xc0\x23\xc2\xdc\xc0\x23\xc2' # SYNC constant
+rservd = b'\x00\x00' # Reserved field - Not used in this project
+checksum = b'\x00\x00' # Checksum initialization
 
-print(data)
+with open(sys.argv[1], 'rb') as input:
+	data = input.read()
 
 length = FrameReader.getLength(data)
 
-msg = SYNC + checksum + b'0000000000000100' + rservd + data
+frame = SYNC + checksum + length + rservd + data
 
-print(msg)
+print(frame)
 
-cacatená = pack('>l', length) + pack('>l', length)
-
-print(cacatená)
-
-checksum = Checksum.checksumCalculator(msg)
+checksum = Checksum.checksumCalculator(frame)
 
 print(checksum)
+
+frame = SYNC + checksum + length + rservd + data
+
+print(frame)
+
+with open(sys.argv[2], 'wb') as output:
+	output.write(frame)
